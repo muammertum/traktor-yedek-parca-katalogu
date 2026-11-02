@@ -10,15 +10,15 @@
 </script>
 <style>
   :root {
-    --zemin: #f3f1ea;
-    --kart: #ffffff;
-    --yazi: #22261f;
-    --soluk: #666b60;
-    --cizgi: #d9d6ca;
-    --koyu: #24402f;
-    --vurgu: #c8641b;
-    --uyari: #fbeed2;
-    --uyari-cizgi: #e5c67e;
+    --zemin: #cfe0f2;
+    --kart: #edf4fc;
+    --yazi: #12263d;
+    --soluk: #41597a;
+    --cizgi: #a9c3e0;
+    --koyu: #123a66;
+    --vurgu: #1a64c0;
+    --uyari: #e3effb;
+    --uyari-cizgi: #8db4e0;
   }
   * { box-sizing: border-box; }
   body {
@@ -53,10 +53,10 @@
   }
   .dugme:hover { background: rgba(255, 255, 255, .12); }
   .dugme.ana { background: var(--vurgu); border-color: var(--vurgu); }
-  .dugme.ana:hover { background: #ad5414; }
+  .dugme.ana:hover { background: #1553a3; }
   input[type=file] { position: absolute; opacity: 0; width: 1px; height: 1px; }
   input[type=file]:focus-visible + .dugme, button:focus-visible, .kart:focus-visible, #arama:focus-visible {
-    outline: 3px solid #f0b37e;
+    outline: 3px solid #7fb4f0;
     outline-offset: 2px;
   }
 
@@ -82,15 +82,13 @@
   #arama:focus { border-color: var(--koyu); }
   #bilgi { color: var(--soluk); }
 
-  #izgara {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 14px;
-  }
+  #izgara { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .kart {
-    display: flex;
-    flex-direction: column;
-    padding: 0;
+    display: grid;
+    grid-template-columns: 170px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+    padding: 0 18px 0 0;
     overflow: hidden;
     text-align: left;
     color: inherit;
@@ -100,18 +98,26 @@
     cursor: pointer;
   }
   .kart:hover { border-color: var(--koyu); }
-  .foto-alani { aspect-ratio: 4 / 3; width: 100%; background: #fff; border-bottom: 1px solid var(--cizgi); }
+  .foto-alani { aspect-ratio: 4 / 3; width: 100%; background: #fff; }
+  .kart .foto-alani { border-right: 1px solid var(--cizgi); }
   .foto-alani img { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .ozellikler { display: flex; flex-wrap: wrap; gap: 2px 18px; margin-top: 6px; color: var(--soluk); font-size: 15px; }
+  .ozellikler b { font-weight: 600; }
+  .kart > .fiyat { margin: 0; white-space: nowrap; }
+  @media (max-width: 640px) {
+    .kart { grid-template-columns: 110px minmax(0, 1fr); gap: 4px 12px; padding: 0 12px 0 0; }
+    .kart > .fiyat { grid-column: 2; padding-bottom: 8px; }
+  }
   .foto-yok {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
     height: 100%;
-    background: #e6e4dc;
+    background: #dbe7f4;
     color: var(--soluk);
   }
-  .kart-yazi { display: block; padding: 10px 12px 12px; }
+  .kart-yazi { display: block; padding: 10px 0; min-width: 0; }
   .kod { display: block; font-family: Consolas, "Courier New", monospace; font-weight: 700; font-size: 17px; overflow-wrap: anywhere; }
   .ad { display: block; margin-top: 2px; overflow-wrap: anywhere; }
   .fiyat { display: block; margin-top: 6px; font-weight: 700; color: var(--vurgu); font-size: 18px; }
@@ -136,8 +142,9 @@
     border: 0;
     border-radius: 10px;
     color: var(--yazi);
+    background: #f1f6fc;
   }
-  dialog::backdrop { background: rgba(20, 26, 20, .6); }
+  dialog::backdrop { background: rgba(10, 30, 60, .6); }
   .pencere-ic { padding: 16px 20px 20px; }
   .kapat-satiri { display: flex; justify-content: flex-end; }
   .kapat {
@@ -152,6 +159,7 @@
   #ayrinti .kod { font-size: 24px; }
   #ayrinti .ad { font-size: 20px; }
   #ayrinti .fiyat { font-size: 26px; }
+  #ayrinti .ozellikler { font-size: 17px; }
   #ozet h2 { margin: 0 0 10px; font-size: 20px; }
   #ozetIcerik p { margin: 6px 0; }
   #ozetIcerik .kod-listesi { font-family: Consolas, "Courier New", monospace; overflow-wrap: anywhere; }
@@ -223,11 +231,15 @@
 
 <script src="lib/xlsx.full.min.js"></script>
 <script src="ornek-veri.js"></script>
+<script src="katalog-veri.js"></script>
 <script>
   const PARTI = 60;
   const FOTO_KLASORU = 'fotograflar/';
   const FIYAT_ANAHTARI = 'katalog-fiyat-acik';
   const fiyatBicimi = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' });
+
+  // Yalnızca F0010, MF0270, G02A, İ01 gibi harfle başlayıp rakamla süren kodlar alınır.
+  const KOD_DESENI = /^[A-ZÇĞİÖŞÜ]{1,3}-?\d\S*$/i;
 
   const durum = { parcalar: [], kaynak: null, sonuc: [], gosterilen: 0, fiyatAcik: false };
   const $ = id => document.getElementById(id);
@@ -261,7 +273,14 @@
 
   // ---- Fotoğraf ----
 
-  function fotoAlani(parca) {
+  const fotoAdresleri = new WeakMap();
+
+  function blobAdresi(blob) {
+    if (!fotoAdresleri.has(blob)) fotoAdresleri.set(blob, URL.createObjectURL(blob));
+    return fotoAdresleri.get(blob);
+  }
+
+  function fotoAlani(parca, sira = 0) {
     const alan = document.createElement('span');
     alan.className = 'foto-alani';
     alan.style.display = 'block';
@@ -273,14 +292,15 @@
       alan.replaceChildren(kutu);
     };
 
-    const dosya = String(parca.foto || '').trim().split(/[\\/]/).pop();
-    if (!dosya) { yok(); return alan; }
+    const blob = parca.fotolar?.[sira];
+    const dosya = String([].concat(parca.foto || '')[sira] || '').trim().split(/[\\/]/).pop();
+    if (!blob && !dosya) { yok(); return alan; }
 
     const img = document.createElement('img');
     img.loading = 'lazy';
     img.alt = parca.ad || parca.kod;
     img.addEventListener('error', yok);
-    img.src = FOTO_KLASORU + encodeURIComponent(dosya);
+    img.src = blob ? blobAdresi(blob) : FOTO_KLASORU + encodeURIComponent(dosya);
     alan.append(img);
     return alan;
   }
@@ -300,10 +320,24 @@
     kart.className = 'kart';
     const yazi = document.createElement('span');
     yazi.className = 'kart-yazi';
-    yazi.append(yaziParcasi('kod', parca.kod), yaziParcasi('ad', parca.ad), yaziParcasi('fiyat', fiyatYazisi(parca.fiyat)));
-    kart.append(fotoAlani(parca), yazi);
+    yazi.append(yaziParcasi('kod', parca.kod), yaziParcasi('ad', parca.ad), ozellikler(parca));
+    kart.append(fotoAlani(parca), yazi, yaziParcasi('fiyat', fiyatYazisi(parca.fiyat)));
     kart.addEventListener('click', () => ayrintiAc(parca));
     return kart;
+  }
+
+  function ozellikler(parca) {
+    const kutu = document.createElement('span');
+    kutu.className = 'ozellikler';
+    for (const [etiket, deger] of [['Orijinal No', parca.orjinal], ['Model', parca.model], ['Paket', parca.paket]]) {
+      if (!deger) continue;
+      const satir = document.createElement('span');
+      const baslik = document.createElement('b');
+      baslik.textContent = etiket + ': ';
+      satir.append(baslik, deger);
+      kutu.append(satir);
+    }
+    return kutu;
   }
 
   function devaminiGoster() {
@@ -338,9 +372,11 @@
   }
 
   function ayrintiAc(parca) {
-    const kod = yaziParcasi('kod', parca.kod);
+    const adet = Math.max(parca.fotolar?.length || 0, [].concat(parca.foto || '').length);
+    const fotolar = Array.from({ length: adet }, (_, i) => fotoAlani(parca, i));
     $('ayrintiIcerik').replaceChildren(
-      fotoAlani(parca), kod, yaziParcasi('ad', parca.ad), yaziParcasi('fiyat', fiyatYazisi(parca.fiyat))
+      ...fotolar, yaziParcasi('kod', parca.kod), yaziParcasi('ad', parca.ad),
+      ozellikler(parca), yaziParcasi('fiyat', fiyatYazisi(parca.fiyat))
     );
     $('ayrinti').showModal();
   }
@@ -396,7 +432,11 @@
 
   class OkumaHatasi extends Error {}
 
-  const SUTUN_ADLARI = { kod: 'Parça kodu', ad: 'Parça adı', fiyat: 'Fiyat', foto: 'Fotoğraf' };
+  const ANA_ALANLAR = ['kod', 'ad', 'fiyat', 'foto'];
+  const SUTUN_ADLARI = {
+    kod: 'Parça kodu', ad: 'Parça adı', fiyat: 'Fiyat', foto: 'Fotoğraf',
+    orjinal: 'Orijinal No', model: 'Model', paket: 'Paket adedi'
+  };
 
   // Excel başlıklarını tanıma kuralları. Bir başlıkta ilk uyan kuralın puanı geçerlidir,
   // her alana en yüksek puanlı sütun verilir. Alan sırası önemlidir: "Fotoğraf Adı" önce
@@ -415,6 +455,9 @@
       [/\boem\b/, 2],
       [/\b(no|numara|numarasi|ref|referans|sku)\b/, 1]
     ]],
+    ['orjinal', [[/\b(orjinal|orijinal|oem)\b/, 1]]],
+    ['paket', [[/\bpaket\b/, 1]]],
+    ['model', [[/\bmodel\b/, 1]]],
     ['ad', [
       [/\b(ad|adi|isim|ismi)\b/, 3],
       [/\b(aciklama|aciklamasi|tanim|tanimi)\b/, 2],
@@ -446,6 +489,8 @@
     if (!hucre || hucre.v === undefined || hucre.v === null || hucre.t === 'e') return '';
     if (hucre.t === 'n') {
       // Biçimli yazı baştaki sıfırları korur; uzun sayılar 1,2E+11 gibi kısalırsa gerçek değer alınır.
+      // "[$-41F]General" biçimi yazıya $ ekler, bu biçimde de gerçek değer alınır.
+      if (/general/i.test(hucre.z || '')) return String(hucre.v);
       const yazi = String(hucre.w ?? hucre.v).trim();
       return /e/i.test(yazi) ? String(hucre.v) : yazi;
     }
@@ -471,7 +516,7 @@
         const sutunlar = sutunlariTani(basliklar);
         if (dolu < 2 && sutunlar.kod === undefined) continue;
         const puan = (sutunlar.kod === undefined ? 0 : 10) + Object.keys(sutunlar).length;
-        if (!enIyi || puan > enIyi.puan) enIyi = { sayfa, aralik, satir: s, sutunlar, puan };
+        if (!enIyi || puan > enIyi.puan) enIyi = { sayfaAdi: ad, sayfa, aralik, satir: s, sutunlar, puan };
       }
     }
     return enIyi;
@@ -522,10 +567,102 @@
     });
   }
 
-  function satirlariOku({ sayfa, aralik, satir, sutunlar }) {
+  // ---- Excel'in içindeki fotoğraflar ----
+
+  const FOTO_TIPLERI = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp' };
+
+  function zipDosyasi(zip, yol) {
+    const sira = zip.FullPaths.findIndex(p => p.endsWith('/' + yol));
+    return sira < 0 ? null : zip.FileIndex[sira].content;
+  }
+
+  function zipMetni(zip, yol) {
+    const icerik = zipDosyasi(zip, yol);
+    return icerik ? new TextDecoder().decode(new Uint8Array(icerik)) : '';
+  }
+
+  function iliskiler(zip, yol) {
+    const bolum = yol.lastIndexOf('/');
+    const xml = zipMetni(zip, `${yol.slice(0, bolum)}/_rels/${yol.slice(bolum + 1)}.rels`);
+    return [...xml.matchAll(/<Relationship\b[^>]*>/g)].map(([etiket]) => ({
+      id: etiket.match(/\bId="([^"]+)"/)[1],
+      tip: etiket.match(/\bType="([^"]+)"/)[1],
+      yol: decodeURI(new URL(etiket.match(/\bTarget="([^"]+)"/)[1], 'http://x/' + yol).pathname.slice(1))
+    }));
+  }
+
+  function fotoBlobu(zip, yol) {
+    const tip = FOTO_TIPLERI[yol.split('.').pop().toLowerCase()];
+    const icerik = zipDosyasi(zip, yol);
+    return tip && icerik ? new Blob([new Uint8Array(icerik)], { type: tip }) : null;
+  }
+
+  // Her fotoğrafı dikey ortasının düştüğü satıra bağlar. Fotoğraflar çoğu zaman bir üst
+  // satırın sonundan başladığı için başlangıç satırına bakmak yanlış parçayı verir.
+  function fotolariOku(veri, kitap, tablo) {
+    const zip = XLSX.CFB.read(new Uint8Array(veri), { type: 'array' });
+    const sayfaEtiketi = [...zipMetni(zip, 'xl/workbook.xml').matchAll(/<sheet\b[^>]*>/g)][kitap.SheetNames.indexOf(tablo.sayfaAdi)];
+    if (!sayfaEtiketi) return new Map();
+    const sayfaId = sayfaEtiketi[0].match(/:id="([^"]+)"/)[1];
+    const sayfaYolu = iliskiler(zip, 'xl/workbook.xml').find(i => i.id === sayfaId).yol;
+    const cizimYolu = iliskiler(zip, sayfaYolu).find(i => i.tip.endsWith('/drawing'))?.yol;
+    if (!cizimYolu) return new Map();
+
+    const varsayilan = Number(zipMetni(zip, sayfaYolu).match(/defaultRowHeight="([\d.]+)"/)?.[1] || 15);
+    const satirlar = tablo.sayfa['!rows'] || [];
+    const ustler = [0];
+    for (let s = 0; s <= tablo.aralik.e.r + 200; s++) {
+      const satir = satirlar[s];
+      const yukseklik = satir?.hidden ? 0 : satir?.hpt ?? varsayilan;
+      ustler[s + 1] = ustler[s] + yukseklik * 12700;
+    }
+    const satirBul = y => {
+      let s = 0;
+      while (s + 1 < ustler.length && ustler[s + 1] <= y) s++;
+      return s;
+    };
+
+    const baglantilar = new Map(iliskiler(zip, cizimYolu).map(i => [i.id, i.yol]));
+    const belge = new DOMParser().parseFromString(zipMetni(zip, cizimYolu), 'application/xml');
+    const cocuk = (el, ad) => [...el.children].find(c => c.localName === ad);
+    const konum = el => ustler[Number(cocuk(el, 'row').textContent)] + Number(cocuk(el, 'rowOff').textContent);
+
+    const harita = new Map();
+    const bloblar = new Map();
+    for (const ad of ['twoCellAnchor', 'oneCellAnchor']) {
+      for (const capa of belge.getElementsByTagNameNS('*', ad)) {
+        const baslangic = cocuk(capa, 'from');
+        if (tablo.sutunlar.foto !== undefined && Number(cocuk(baslangic, 'col').textContent) !== tablo.sutunlar.foto) continue;
+        const resim = capa.getElementsByTagNameNS('*', 'blip')[0];
+        const yol = baglantilar.get(resim?.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'embed'));
+        if (!yol) continue;
+        if (!bloblar.has(yol)) bloblar.set(yol, fotoBlobu(zip, yol));
+        if (!bloblar.get(yol)) continue;
+
+        const ust = konum(baslangic);
+        const bitis = cocuk(capa, 'to');
+        const alt = bitis ? konum(bitis) : ust + Number(cocuk(capa, 'ext').getAttribute('cy'));
+        const satir = satirBul((ust + alt) / 2);
+        if (!harita.has(satir)) harita.set(satir, []);
+        harita.get(satir).push({ ust, blob: bloblar.get(yol) });
+      }
+    }
+    return harita;
+  }
+
+  // Bir satıra iki fotoğraf düşmüş, bitişik parça fotoğrafsız kalmışsa fazlasını ona verir.
+  function fazlaFotolariDagit(harita, kodSatirlari) {
+    for (const [satir, fotolar] of [...harita]) {
+      fotolar.sort((a, b) => a.ust - b.ust);
+      if (fotolar.length > 1 && kodSatirlari.has(satir - 1) && !harita.has(satir - 1)) harita.set(satir - 1, [fotolar.shift()]);
+      if (fotolar.length > 1 && kodSatirlari.has(satir + 1) && !harita.has(satir + 1)) harita.set(satir + 1, [fotolar.pop()]);
+    }
+  }
+
+  function satirlariOku({ sayfa, aralik, satir, sutunlar }, fotoHaritasi) {
     const parcalar = [];
     const adetler = new Map();
-    let kodsuz = 0;
+    let atlanan = 0;
     let fiyatsiz = 0;
 
     for (let s = satir + 1; s <= aralik.e.r; s++) {
@@ -536,8 +673,8 @@
       const fiyatHucre = hucre('fiyat');
       const fiyatYazi = hucreYazisi(fiyatHucre);
 
-      if (!kod) {
-        if (ad || foto || fiyatYazi) kodsuz++;
+      if (!KOD_DESENI.test(kod)) {
+        if (kod || ad || foto || fiyatYazi) atlanan++;
         continue;
       }
       let fiyat = null;
@@ -545,13 +682,23 @@
         fiyat = fiyatOku(fiyatHucre.t === 'n' ? fiyatHucre.v : fiyatYazi);
         if (fiyat === null) fiyatsiz++;
       }
-      parcalar.push({ kod, ad, fiyat, foto });
+      const orjinal = hucreYazisi(hucre('orjinal')).replace(/\s*\n\s*/g, ', ');
+      parcalar.push({
+        kod, ad: ad.replace(/\s+/g, ' '), fiyat, foto, orjinal,
+        model: hucreYazisi(hucre('model')).replace(/\s+/g, ' '), paket: hucreYazisi(hucre('paket')), satir: s
+      });
       adetler.set(kod, (adetler.get(kod) || 0) + 1);
     }
 
-    if (!parcalar.length) throw new OkumaHatasi('Dosyada kodu olan hiç parça satırı bulunamadı.');
+    if (!parcalar.length) throw new OkumaHatasi('Dosyada F0010 gibi harfle başlayan parça kodu bulunamadı.');
+    fazlaFotolariDagit(fotoHaritasi, new Set(parcalar.map(p => p.satir)));
+    for (const parca of parcalar) {
+      const fotolar = fotoHaritasi.get(parca.satir);
+      if (fotolar) parca.fotolar = fotolar.map(f => f.blob);
+      delete parca.satir;
+    }
     const tekrarlar = [...adetler].filter(([, adet]) => adet > 1).map(([kod]) => kod);
-    return { parcalar, kodsuz, fiyatsiz, tekrarlar };
+    return { parcalar, atlanan, fiyatsiz, tekrarlar };
   }
 
   // ---- Özet penceresi ----
@@ -586,9 +733,9 @@
     }
     try {
       if (/\.csv$/i.test(dosya.name)) {
-        return XLSX.read(csvYazisi(veri), { type: 'string', raw: true });
+        return { kitap: XLSX.read(csvYazisi(veri), { type: 'string', raw: true }), veri: null };
       }
-      return XLSX.read(veri, { type: 'array' });
+      return { kitap: XLSX.read(veri, { type: 'array', cellNF: true, cellStyles: true }), veri };
     } catch (hata) {
       throw new OkumaHatasi(/password/i.test(hata.message)
         ? 'Dosya şifreli. Excel\'de şifresini kaldırıp yeniden kaydedin.'
@@ -599,14 +746,25 @@
   async function excelYukle(dosya) {
     let tablo;
     let sonuc;
+    let fotoHatasi = false;
     try {
-      tablo = tabloBul(await dosyayiAc(dosya));
+      const { kitap, veri } = await dosyayiAc(dosya);
+      tablo = tabloBul(kitap);
       if (!tablo) throw new OkumaHatasi('Dosyada sütunlu bir tablo bulunamadı.');
       if (tablo.sutunlar.kod === undefined) {
         tablo = await eslestirmeIste(tablo);
         if (!tablo) return;
       }
-      sonuc = satirlariOku(tablo);
+      let fotoHaritasi = new Map();
+      if (veri) {
+        try {
+          fotoHaritasi = fotolariOku(veri, kitap, tablo);
+        } catch (hata) {
+          console.error(hata);
+          fotoHatasi = true;
+        }
+      }
+      sonuc = satirlariOku(tablo, fotoHaritasi);
     } catch (hata) {
       if (!(hata instanceof OkumaHatasi)) console.error(hata);
       const neden = hata instanceof OkumaHatasi ? hata.message : 'Beklenmeyen hata: ' + hata.message;
@@ -616,7 +774,12 @@
 
     const kaynak = { dosya: dosya.name, tarih: new Date().toISOString() };
     const satirlar = [[`${sonuc.parcalar.length.toLocaleString('tr-TR')} parça yüklendi.`]];
-    const eksikAlanlar = Object.keys(SUTUN_ADLARI).filter(alan => tablo.sutunlar[alan] === undefined);
+    const fotoluAdet = sonuc.parcalar.filter(p => p.fotolar).length;
+    if (fotoluAdet) {
+      satirlar.push([`${fotoluAdet.toLocaleString('tr-TR')} parçanın fotoğrafı Excel'den alındı, ${sonuc.parcalar.length - fotoluAdet} parçada fotoğraf yok.`]);
+    }
+    if (fotoHatasi) satirlar.push(['Excel\'in içindeki fotoğraflar okunamadı.']);
+    const eksikAlanlar = ANA_ALANLAR.filter(alan => tablo.sutunlar[alan] === undefined);
     if (eksikAlanlar.length) {
       satirlar.push([`Bulunamayan sütunlar: ${eksikAlanlar.map(a => SUTUN_ADLARI[a]).join(', ')}. Bu bilgiler boş kalacak.`]);
     }
@@ -624,7 +787,7 @@
       const baslik = hucreYazisi(hucreAl(tablo.sayfa, tablo.satir, tablo.sutunlar.fiyat));
       if (baslik) satirlar.push([`Fiyat olarak "${baslik}" sütunu kullanıldı.`]);
     }
-    if (sonuc.kodsuz) satirlar.push([`${sonuc.kodsuz} satır kodu olmadığı için atlandı.`]);
+    if (sonuc.atlanan) satirlar.push([`${sonuc.atlanan} satır parça kodu içermediği için dikkate alınmadı.`]);
     if (sonuc.fiyatsiz) satirlar.push([`${sonuc.fiyatsiz} parçanın fiyatı okunamadı, "Sorunuz" olarak gösterilecek.`]);
     if (sonuc.tekrarlar.length) {
       satirlar.push([`${sonuc.tekrarlar.length} kod birden fazla satırda geçiyor:`]);
@@ -670,7 +833,10 @@
   (async () => {
     let kayit = null;
     try { kayit = await kayitOku(); } catch { /* kayıt okunamazsa örnek veriyle açılır */ }
-    if (kayit) parcalariAyarla(kayit.parcalar, { dosya: kayit.dosya, tarih: kayit.tarih });
+    // katalog-veri.js klasördeki hazır listedir; tarayıcıya sonradan yüklenen Excel ondan önceliklidir.
+    const hazir = window.HAZIR_KATALOG;
+    if (kayit && (!hazir || kayit.tarih > hazir.tarih)) parcalariAyarla(kayit.parcalar, { dosya: kayit.dosya, tarih: kayit.tarih });
+    else if (hazir) parcalariAyarla(hazir.parcalar, { dosya: hazir.dosya, tarih: hazir.tarih });
     else parcalariAyarla(window.ORNEK_PARCALAR || [], null);
   })();
 </script>
