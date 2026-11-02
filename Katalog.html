@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Traktör Yedek Parça Kataloğu</title>
+<script>
+  // Firma adınızı buraya yazın. Tırnak işaretlerini silmeyin.
+  const BASLIK = 'Traktör Yedek Parça Kataloğu';
+</script>
+<style>
+  :root {
+    --zemin: #f3f1ea;
+    --kart: #ffffff;
+    --yazi: #22261f;
+    --soluk: #666b60;
+    --cizgi: #d9d6ca;
+    --koyu: #24402f;
+    --vurgu: #c8641b;
+    --uyari: #fbeed2;
+    --uyari-cizgi: #e5c67e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--zemin);
+    color: var(--yazi);
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.4;
+  }
+  button, input { font: inherit; }
+
+  header { background: var(--koyu); color: #fff; }
+  .ust {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+  }
+  h1 { margin: 0; font-size: 24px; font-weight: 600; flex: 1 1 280px; }
+  .dugme {
+    display: inline-block;
+    padding: 9px 14px;
+    border: 1px solid rgba(255, 255, 255, .55);
+    border-radius: 6px;
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+  }
+  .dugme:hover { background: rgba(255, 255, 255, .12); }
+  .dugme.ana { background: var(--vurgu); border-color: var(--vurgu); }
+  .dugme.ana:hover { background: #ad5414; }
+  input[type=file] { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  input[type=file]:focus-visible + .dugme, button:focus-visible, .kart:focus-visible, #arama:focus-visible {
+    outline: 3px solid #f0b37e;
+    outline-offset: 2px;
+  }
+
+  main { max-width: 1280px; margin: 0 auto; padding: 16px; }
+  .uyari {
+    margin-bottom: 14px;
+    padding: 10px 14px;
+    background: var(--uyari);
+    border: 1px solid var(--uyari-cizgi);
+    border-radius: 6px;
+  }
+  .arama-satiri { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 16px; }
+  #arama {
+    flex: 1 1 320px;
+    padding: 12px 14px;
+    font-size: 20px;
+    font-family: Consolas, "Courier New", monospace;
+    border: 2px solid var(--cizgi);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--yazi);
+  }
+  #arama:focus { border-color: var(--koyu); }
+  #bilgi { color: var(--soluk); }
+
+  #izgara {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .kart {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+    text-align: left;
+    color: inherit;
+    background: var(--kart);
+    border: 1px solid var(--cizgi);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .kart:hover { border-color: var(--koyu); }
+  .foto-alani { aspect-ratio: 4 / 3; width: 100%; background: #fff; border-bottom: 1px solid var(--cizgi); }
+  .foto-alani img { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .foto-yok {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background: #e6e4dc;
+    color: var(--soluk);
+  }
+  .kart-yazi { display: block; padding: 10px 12px 12px; }
+  .kod { display: block; font-family: Consolas, "Courier New", monospace; font-weight: 700; font-size: 17px; overflow-wrap: anywhere; }
+  .ad { display: block; margin-top: 2px; overflow-wrap: anywhere; }
+  .fiyat { display: block; margin-top: 6px; font-weight: 700; color: var(--vurgu); font-size: 18px; }
+  .fiyat-gizli .fiyat { display: none; }
+
+  #bos { padding: 40px 12px; text-align: center; color: var(--soluk); }
+  #dahaFazla {
+    display: block;
+    margin: 20px auto 8px;
+    padding: 10px 22px;
+    background: var(--koyu);
+    color: #fff;
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  dialog {
+    width: min(760px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+    padding: 0;
+    border: 0;
+    border-radius: 10px;
+    color: var(--yazi);
+  }
+  dialog::backdrop { background: rgba(20, 26, 20, .6); }
+  .pencere-ic { padding: 16px 20px 20px; }
+  .kapat-satiri { display: flex; justify-content: flex-end; }
+  .kapat {
+    padding: 7px 14px;
+    background: var(--koyu);
+    color: #fff;
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  #ayrinti .foto-alani { aspect-ratio: 16 / 10; border: 1px solid var(--cizgi); border-radius: 6px; overflow: hidden; margin: 10px 0 14px; }
+  #ayrinti .kod { font-size: 24px; }
+  #ayrinti .ad { font-size: 20px; }
+  #ayrinti .fiyat { font-size: 26px; }
+  #ozet h2 { margin: 0 0 10px; font-size: 20px; }
+  #ozetIcerik p { margin: 6px 0; }
+  #ozetIcerik .kod-listesi { font-family: Consolas, "Courier New", monospace; overflow-wrap: anywhere; }
+  #eslestir h2 { margin: 0 0 8px; font-size: 20px; }
+  #eslestir p { margin: 0 0 12px; }
+  .eslestir-satiri { display: grid; grid-template-columns: 110px 1fr; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .eslestir-satiri select { width: 100%; padding: 7px; font: inherit; }
+  .baslik-yok { display: flex; align-items: center; gap: 8px; margin: 12px 0; }
+  #eslestirHata { color: #a32a12; font-weight: 600; }
+  .iki-dugme { display: flex; justify-content: flex-end; gap: 8px; }
+  .kapat.ikincil { background: #fff; color: var(--yazi); border: 1px solid var(--cizgi); }
+</style>
+</head>
+<body class="fiyat-gizli">
+
+<header>
+  <div class="ust">
+    <h1 id="baslik"></h1>
+    <button type="button" class="dugme" id="fiyatDugme" aria-pressed="false">Fiyatları göster</button>
+    <input type="file" id="excelDosya" accept=".xlsx,.xls,.xlsm,.xlsb,.csv">
+    <label for="excelDosya" class="dugme ana">Excel Yükle</label>
+  </div>
+</header>
+
+<main>
+  <div class="uyari" id="ornekUyari" hidden>
+    Şu an <strong>örnek veriler</strong> gösteriliyor. Kendi parçalarınız için
+    <strong>ornek-katalog.xlsx</strong> dosyasını doldurup <strong>Excel Yükle</strong> düğmesini kullanın.
+  </div>
+
+  <div class="arama-satiri">
+    <input type="search" id="arama" placeholder="Parça kodu yazın" aria-label="Parça kodu ile ara" autocomplete="off" autofocus>
+    <span id="bilgi" aria-live="polite"></span>
+  </div>
+
+  <div id="izgara"></div>
+  <div id="bos" hidden>Bu kodla parça bulunamadı.</div>
+  <button type="button" id="dahaFazla" hidden>Daha fazla göster</button>
+</main>
+
+<dialog id="ayrinti">
+  <div class="pencere-ic">
+    <div class="kapat-satiri"><button type="button" class="kapat">Kapat</button></div>
+    <div id="ayrintiIcerik"></div>
+  </div>
+</dialog>
+
+<dialog id="ozet">
+  <div class="pencere-ic">
+    <h2 id="ozetBaslik"></h2>
+    <div id="ozetIcerik"></div>
+    <div class="kapat-satiri"><button type="button" class="kapat">Tamam</button></div>
+  </div>
+</dialog>
+
+<dialog id="eslestir">
+  <form class="pencere-ic" id="eslestirForm">
+    <h2>Sütunları seçin</h2>
+    <p>Parça kodu sütunu otomatik bulunamadı. Excel'deki hangi sütunda ne olduğunu seçin.</p>
+    <div id="eslestirAlanlar"></div>
+    <label class="baslik-yok"><input type="checkbox" id="baslikYok"> Bu dosyada başlık satırı yok, ilk satır da parça</label>
+    <p id="eslestirHata" hidden>Parça kodu sütununu seçmelisiniz.</p>
+    <div class="iki-dugme">
+      <button type="button" class="kapat ikincil">Vazgeç</button>
+      <button type="submit" class="kapat" id="eslestirDevam">Devam</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="lib/xlsx.full.min.js"></script>
+<script src="ornek-veri.js"></script>
+<script>
+  const PARTI = 60;
+  const FOTO_KLASORU = 'fotograflar/';
+  const FIYAT_ANAHTARI = 'katalog-fiyat-acik';
+  const fiyatBicimi = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' });
+
+  const durum = { parcalar: [], kaynak: null, sonuc: [], gosterilen: 0, fiyatAcik: false };
+  const $ = id => document.getElementById(id);
+
+  // ---- Metin yardımcıları ----
+
+  function sadelestir(metin) {
+    return String(metin).normalize('NFC').trim().toLocaleLowerCase('tr')
+      .replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g')
+      .replace(/ü/g, 'u').replace(/ö/g, 'o').replace(/ç/g, 'c');
+  }
+
+  function aramaAnahtari(metin) {
+    return sadelestir(metin).replace(/[\s-]+/g, '');
+  }
+
+  // Sayı ya da "1.250,50 TL" gibi bir yazıyı sayıya çevirir, olmuyorsa null döner.
+  function fiyatOku(deger) {
+    if (typeof deger === 'number') return deger;
+    let s = String(deger).replace(/[^\d.,]/g, '');
+    if (!/\d/.test(s)) return null;
+    if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+    else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+    const sayi = Number(s);
+    return Number.isFinite(sayi) ? sayi : null;
+  }
+
+  function fiyatYazisi(fiyat) {
+    return fiyat === null || fiyat === undefined ? 'Sorunuz' : fiyatBicimi.format(fiyat);
+  }
+
+  // ---- Fotoğraf ----
+
+  function fotoAlani(parca) {
+    const alan = document.createElement('span');
+    alan.className = 'foto-alani';
+    alan.style.display = 'block';
+
+    const yok = () => {
+      const kutu = document.createElement('span');
+      kutu.className = 'foto-yok';
+      kutu.textContent = 'Fotoğraf yok';
+      alan.replaceChildren(kutu);
+    };
+
+    const dosya = String(parca.foto || '').trim().split(/[\\/]/).pop();
+    if (!dosya) { yok(); return alan; }
+
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.alt = parca.ad || parca.kod;
+    img.addEventListener('error', yok);
+    img.src = FOTO_KLASORU + encodeURIComponent(dosya);
+    alan.append(img);
+    return alan;
+  }
+
+  function yaziParcasi(sinif, metin) {
+    const el = document.createElement('span');
+    el.className = sinif;
+    el.textContent = metin;
+    return el;
+  }
+
+  // ---- Liste ----
+
+  function kartYap(parca) {
+    const kart = document.createElement('button');
+    kart.type = 'button';
+    kart.className = 'kart';
+    const yazi = document.createElement('span');
+    yazi.className = 'kart-yazi';
+    yazi.append(yaziParcasi('kod', parca.kod), yaziParcasi('ad', parca.ad), yaziParcasi('fiyat', fiyatYazisi(parca.fiyat)));
+    kart.append(fotoAlani(parca), yazi);
+    kart.addEventListener('click', () => ayrintiAc(parca));
+    return kart;
+  }
+
+  function devaminiGoster() {
+    const parti = durum.sonuc.slice(durum.gosterilen, durum.gosterilen + PARTI);
+    $('izgara').append(...parti.map(kartYap));
+    durum.gosterilen += parti.length;
+    $('dahaFazla').hidden = durum.gosterilen >= durum.sonuc.length;
+  }
+
+  function listele() {
+    const aranan = aramaAnahtari($('arama').value);
+    durum.sonuc = aranan ? durum.parcalar.filter(p => p.anahtar.includes(aranan)) : durum.parcalar;
+    durum.gosterilen = 0;
+    $('izgara').replaceChildren();
+    devaminiGoster();
+
+    $('bos').hidden = durum.sonuc.length > 0;
+    const toplam = durum.parcalar.length.toLocaleString('tr-TR');
+    const adet = durum.sonuc.length.toLocaleString('tr-TR');
+    let bilgi = aranan ? `${adet} / ${toplam} parça` : `${toplam} parça`;
+    if (durum.kaynak) {
+      bilgi += ` · ${durum.kaynak.dosya}, ${new Date(durum.kaynak.tarih).toLocaleDateString('tr-TR')}`;
+    }
+    $('bilgi').textContent = bilgi;
+  }
+
+  function parcalariAyarla(parcalar, kaynak) {
+    durum.parcalar = parcalar.map(p => ({ ...p, anahtar: aramaAnahtari(p.kod) }));
+    durum.kaynak = kaynak;
+    $('ornekUyari').hidden = Boolean(kaynak);
+    listele();
+  }
+
+  function ayrintiAc(parca) {
+    const kod = yaziParcasi('kod', parca.kod);
+    $('ayrintiIcerik').replaceChildren(
+      fotoAlani(parca), kod, yaziParcasi('ad', parca.ad), yaziParcasi('fiyat', fiyatYazisi(parca.fiyat))
+    );
+    $('ayrinti').showModal();
+  }
+
+  // ---- Fiyat düğmesi ----
+
+  function fiyatAyarla(acik) {
+    durum.fiyatAcik = acik;
+    document.body.classList.toggle('fiyat-gizli', !acik);
+    $('fiyatDugme').textContent = acik ? 'Fiyatları gizle' : 'Fiyatları göster';
+    $('fiyatDugme').setAttribute('aria-pressed', String(acik));
+  }
+
+  function fiyatSeciminiOku() {
+    try { return localStorage.getItem(FIYAT_ANAHTARI) === '1'; } catch { return false; }
+  }
+
+  function fiyatSeciminiYaz(acik) {
+    try { localStorage.setItem(FIYAT_ANAHTARI, acik ? '1' : '0'); } catch { /* seçim bu oturumla sınırlı kalır */ }
+  }
+
+  // ---- Kayıt (IndexedDB) ----
+
+  function veritabani() {
+    return new Promise((coz, reddet) => {
+      const istek = indexedDB.open('katalog', 1);
+      istek.onupgradeneeded = () => istek.result.createObjectStore('veri');
+      istek.onsuccess = () => coz(istek.result);
+      istek.onerror = () => reddet(istek.error);
+    });
+  }
+
+  async function kayitOku() {
+    const db = await veritabani();
+    return new Promise((coz, reddet) => {
+      const istek = db.transaction('veri').objectStore('veri').get('liste');
+      istek.onsuccess = () => coz(istek.result || null);
+      istek.onerror = () => reddet(istek.error);
+    });
+  }
+
+  async function kayitYaz(kayit) {
+    const db = await veritabani();
+    return new Promise((coz, reddet) => {
+      const islem = db.transaction('veri', 'readwrite');
+      islem.objectStore('veri').put(kayit, 'liste');
+      islem.oncomplete = () => coz();
+      islem.onerror = () => reddet(islem.error);
+    });
+  }
+
+  // ---- Excel okuma ----
+
+  class OkumaHatasi extends Error {}
+
+  const SUTUN_ADLARI = { kod: 'Parça kodu', ad: 'Parça adı', fiyat: 'Fiyat', foto: 'Fotoğraf' };
+
+  // Excel başlıklarını tanıma kuralları. Bir başlıkta ilk uyan kuralın puanı geçerlidir,
+  // her alana en yüksek puanlı sütun verilir. Alan sırası önemlidir: "Fotoğraf Adı" önce
+  // fotoğrafa, "Parça Kodu" önce koda ayrılır. Alış fiyatı ancak başka fiyat yoksa seçilir.
+  const BASLIK_KURALLARI = [
+    ['foto', [[/\b(foto|fotograf|fotografi|resim|resmi|gorsel|gorseli)\b/, 1]]],
+    ['fiyat', [
+      [/\b(alis|maliyet)\b/, 1],
+      [/\bsatis\b.*\bfiyat/, 3],
+      [/\b(fiyat|fiyati|tutar|ucret)\b/, 2]
+    ]],
+    ['kod', [
+      [/\b(sira|satir)\b/, 0],
+      [/^kod$/, 4],
+      [/\bkodu?\b/, 3],
+      [/\boem\b/, 2],
+      [/\b(no|numara|numarasi|ref|referans|sku)\b/, 1]
+    ]],
+    ['ad', [
+      [/\b(ad|adi|isim|ismi)\b/, 3],
+      [/\b(aciklama|aciklamasi|tanim|tanimi)\b/, 2],
+      [/\b(urun|parca|malzeme|stok)\b/, 1]
+    ]]
+  ];
+
+  function sutunlariTani(basliklar) {
+    const sutunlar = {};
+    const alinan = new Set();
+    for (const [alan, kurallar] of BASLIK_KURALLARI) {
+      let secilen;
+      let enYuksek = 0;
+      basliklar.forEach((baslik, c) => {
+        if (alinan.has(c)) return;
+        const kural = kurallar.find(([desen]) => desen.test(baslik));
+        if (kural && kural[1] > enYuksek) { secilen = c; enYuksek = kural[1]; }
+      });
+      if (secilen !== undefined) { sutunlar[alan] = secilen; alinan.add(secilen); }
+    }
+    return sutunlar;
+  }
+
+  function hucreAl(sayfa, r, c) {
+    return sayfa[XLSX.utils.encode_cell({ r, c })];
+  }
+
+  function hucreYazisi(hucre) {
+    if (!hucre || hucre.v === undefined || hucre.v === null || hucre.t === 'e') return '';
+    if (hucre.t === 'n') {
+      // Biçimli yazı baştaki sıfırları korur; uzun sayılar 1,2E+11 gibi kısalırsa gerçek değer alınır.
+      const yazi = String(hucre.w ?? hucre.v).trim();
+      return /e/i.test(yazi) ? String(hucre.v) : yazi;
+    }
+    return String(hucre.v).trim();
+  }
+
+  // Tüm sayfaların ilk 30 satırında en iyi başlık satırını arar. Hiçbir başlık tanınmazsa
+  // en az iki dolu hücresi olan ilk satırı döndürür; sütunları kullanıcı seçer.
+  function tabloBul(kitap) {
+    let enIyi = null;
+    for (const ad of kitap.SheetNames) {
+      const sayfa = kitap.Sheets[ad];
+      if (!sayfa['!ref']) continue;
+      const aralik = XLSX.utils.decode_range(sayfa['!ref']);
+      for (let s = aralik.s.r; s <= Math.min(aralik.s.r + 29, aralik.e.r); s++) {
+        const basliklar = [];
+        let dolu = 0;
+        for (let c = aralik.s.c; c <= aralik.e.c; c++) {
+          const yazi = hucreYazisi(hucreAl(sayfa, s, c));
+          if (yazi) dolu++;
+          basliklar[c] = sadelestir(yazi).replace(/[^a-z0-9]+/g, ' ').trim();
+        }
+        const sutunlar = sutunlariTani(basliklar);
+        if (dolu < 2 && sutunlar.kod === undefined) continue;
+        const puan = (sutunlar.kod === undefined ? 0 : 10) + Object.keys(sutunlar).length;
+        if (!enIyi || puan > enIyi.puan) enIyi = { sayfa, aralik, satir: s, sutunlar, puan };
+      }
+    }
+    return enIyi;
+  }
+
+  function eslestirmeIste(tablo) {
+    const { sayfa, aralik, satir, sutunlar } = tablo;
+    const secenekler = [];
+    for (let c = aralik.s.c; c <= aralik.e.c; c++) {
+      const yazi = hucreYazisi(hucreAl(sayfa, satir, c));
+      if (yazi) secenekler.push([c, `${XLSX.utils.encode_col(c)} sütunu: ${yazi.slice(0, 40)}`]);
+    }
+
+    const secimler = {};
+    $('eslestirAlanlar').replaceChildren(...Object.entries(SUTUN_ADLARI).map(([alan, etiket]) => {
+      const satirEl = document.createElement('label');
+      satirEl.className = 'eslestir-satiri';
+      const secim = document.createElement('select');
+      secim.add(new Option('Yok', ''));
+      for (const [c, yazi] of secenekler) secim.add(new Option(yazi, c));
+      if (sutunlar[alan] !== undefined) secim.value = sutunlar[alan];
+      secimler[alan] = secim;
+      satirEl.append(etiket, secim);
+      return satirEl;
+    }));
+    $('baslikYok').checked = false;
+    $('eslestirHata').hidden = true;
+
+    return new Promise(coz => {
+      const form = $('eslestirForm');
+      let sonuc = null;
+      const gonder = e => {
+        e.preventDefault();
+        if (!secimler.kod.value) { $('eslestirHata').hidden = false; return; }
+        const secilen = {};
+        for (const [alan, secim] of Object.entries(secimler)) {
+          if (secim.value) secilen[alan] = Number(secim.value);
+        }
+        sonuc = { ...tablo, sutunlar: secilen, satir: $('baslikYok').checked ? satir - 1 : satir };
+        $('eslestir').close();
+      };
+      form.addEventListener('submit', gonder);
+      $('eslestir').addEventListener('close', () => {
+        form.removeEventListener('submit', gonder);
+        coz(sonuc);
+      }, { once: true });
+      $('eslestir').showModal();
+    });
+  }
+
+  function satirlariOku({ sayfa, aralik, satir, sutunlar }) {
+    const parcalar = [];
+    const adetler = new Map();
+    let kodsuz = 0;
+    let fiyatsiz = 0;
+
+    for (let s = satir + 1; s <= aralik.e.r; s++) {
+      const hucre = alan => (sutunlar[alan] === undefined ? undefined : hucreAl(sayfa, s, sutunlar[alan]));
+      const kod = hucreYazisi(hucre('kod'));
+      const ad = hucreYazisi(hucre('ad'));
+      const foto = hucreYazisi(hucre('foto'));
+      const fiyatHucre = hucre('fiyat');
+      const fiyatYazi = hucreYazisi(fiyatHucre);
+
+      if (!kod) {
+        if (ad || foto || fiyatYazi) kodsuz++;
+        continue;
+      }
+      let fiyat = null;
+      if (fiyatYazi) {
+        fiyat = fiyatOku(fiyatHucre.t === 'n' ? fiyatHucre.v : fiyatYazi);
+        if (fiyat === null) fiyatsiz++;
+      }
+      parcalar.push({ kod, ad, fiyat, foto });
+      adetler.set(kod, (adetler.get(kod) || 0) + 1);
+    }
+
+    if (!parcalar.length) throw new OkumaHatasi('Dosyada kodu olan hiç parça satırı bulunamadı.');
+    const tekrarlar = [...adetler].filter(([, adet]) => adet > 1).map(([kod]) => kod);
+    return { parcalar, kodsuz, fiyatsiz, tekrarlar };
+  }
+
+  // ---- Özet penceresi ----
+
+  function ozetGoster(baslik, satirlar) {
+    $('ozetBaslik').textContent = baslik;
+    $('ozetIcerik').replaceChildren(...satirlar.map(([metin, sinif]) => {
+      const p = document.createElement('p');
+      p.textContent = metin;
+      if (sinif) p.className = sinif;
+      return p;
+    }));
+    $('ozet').showModal();
+  }
+
+  // Excel CSV'yi Türkçe Windows'ta UTF-8 yerine Windows-1254 ile kaydedebilir.
+  function csvYazisi(veri) {
+    try {
+      return new TextDecoder('utf-8', { fatal: true }).decode(veri);
+    } catch {
+      return new TextDecoder('windows-1254').decode(veri);
+    }
+  }
+
+  async function dosyayiAc(dosya) {
+    if (typeof XLSX === 'undefined') throw new OkumaHatasi('lib klasöründeki Excel okuyucu dosyası bulunamadı.');
+    let veri;
+    try {
+      veri = await dosya.arrayBuffer();
+    } catch {
+      throw new OkumaHatasi('Dosyaya erişilemedi. Başka bir programda kilitli olabilir; o programı kapatıp yeniden deneyin.');
+    }
+    try {
+      if (/\.csv$/i.test(dosya.name)) {
+        return XLSX.read(csvYazisi(veri), { type: 'string', raw: true });
+      }
+      return XLSX.read(veri, { type: 'array' });
+    } catch (hata) {
+      throw new OkumaHatasi(/password/i.test(hata.message)
+        ? 'Dosya şifreli. Excel\'de şifresini kaldırıp yeniden kaydedin.'
+        : 'Dosya okunamadı, bozuk olabilir. Excel\'de açıp .xlsx olarak yeniden kaydetmeyi deneyin.');
+    }
+  }
+
+  async function excelYukle(dosya) {
+    let tablo;
+    let sonuc;
+    try {
+      tablo = tabloBul(await dosyayiAc(dosya));
+      if (!tablo) throw new OkumaHatasi('Dosyada sütunlu bir tablo bulunamadı.');
+      if (tablo.sutunlar.kod === undefined) {
+        tablo = await eslestirmeIste(tablo);
+        if (!tablo) return;
+      }
+      sonuc = satirlariOku(tablo);
+    } catch (hata) {
+      if (!(hata instanceof OkumaHatasi)) console.error(hata);
+      const neden = hata instanceof OkumaHatasi ? hata.message : 'Beklenmeyen hata: ' + hata.message;
+      ozetGoster('Excel yüklenemedi', [[neden], ['Mevcut liste değiştirilmedi.']]);
+      return;
+    }
+
+    const kaynak = { dosya: dosya.name, tarih: new Date().toISOString() };
+    const satirlar = [[`${sonuc.parcalar.length.toLocaleString('tr-TR')} parça yüklendi.`]];
+    const eksikAlanlar = Object.keys(SUTUN_ADLARI).filter(alan => tablo.sutunlar[alan] === undefined);
+    if (eksikAlanlar.length) {
+      satirlar.push([`Bulunamayan sütunlar: ${eksikAlanlar.map(a => SUTUN_ADLARI[a]).join(', ')}. Bu bilgiler boş kalacak.`]);
+    }
+    if (tablo.sutunlar.fiyat !== undefined) {
+      const baslik = hucreYazisi(hucreAl(tablo.sayfa, tablo.satir, tablo.sutunlar.fiyat));
+      if (baslik) satirlar.push([`Fiyat olarak "${baslik}" sütunu kullanıldı.`]);
+    }
+    if (sonuc.kodsuz) satirlar.push([`${sonuc.kodsuz} satır kodu olmadığı için atlandı.`]);
+    if (sonuc.fiyatsiz) satirlar.push([`${sonuc.fiyatsiz} parçanın fiyatı okunamadı, "Sorunuz" olarak gösterilecek.`]);
+    if (sonuc.tekrarlar.length) {
+      satirlar.push([`${sonuc.tekrarlar.length} kod birden fazla satırda geçiyor:`]);
+      const ilkler = sonuc.tekrarlar.slice(0, 20).join(', ');
+      const kalan = sonuc.tekrarlar.length - 20;
+      satirlar.push([kalan > 0 ? `${ilkler} ve ${kalan} kod daha` : ilkler, 'kod-listesi']);
+    }
+
+    try {
+      await kayitYaz({ parcalar: sonuc.parcalar, ...kaynak });
+    } catch {
+      satirlar.push(['Uyarı: Liste tarayıcıya kaydedilemedi. Sayfa kapanınca Excel\'i yeniden yüklemeniz gerekir.']);
+    }
+
+    $('arama').value = '';
+    parcalariAyarla(sonuc.parcalar, kaynak);
+    ozetGoster('Excel yüklendi', satirlar);
+  }
+
+  // ---- Başlangıç ----
+
+  $('baslik').textContent = BASLIK;
+  document.title = BASLIK;
+
+  $('arama').addEventListener('input', listele);
+  $('dahaFazla').addEventListener('click', devaminiGoster);
+  $('fiyatDugme').addEventListener('click', () => {
+    fiyatAyarla(!durum.fiyatAcik);
+    fiyatSeciminiYaz(durum.fiyatAcik);
+  });
+  $('excelDosya').addEventListener('change', async e => {
+    const dosya = e.target.files[0];
+    e.target.value = '';
+    if (dosya) await excelYukle(dosya);
+  });
+  for (const pencere of document.querySelectorAll('dialog')) {
+    pencere.querySelector('.kapat').addEventListener('click', () => pencere.close());
+    pencere.addEventListener('click', e => { if (e.target === pencere) pencere.close(); });
+  }
+
+  fiyatAyarla(fiyatSeciminiOku());
+
+  (async () => {
+    let kayit = null;
+    try { kayit = await kayitOku(); } catch { /* kayıt okunamazsa örnek veriyle açılır */ }
+    if (kayit) parcalariAyarla(kayit.parcalar, { dosya: kayit.dosya, tarih: kayit.tarih });
+    else parcalariAyarla(window.ORNEK_PARCALAR || [], null);
+  })();
+</script>
+</body>
+</html>
